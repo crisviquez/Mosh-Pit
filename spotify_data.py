@@ -53,3 +53,68 @@ def get_top_artists(range_limit, range_time):
 def get_top_track_uris(limit, time_range):
     top_tracks = sp.current_user_top_tracks(limit=limit, time_range=time_range)
     return [track['uri'] for track in top_tracks['items']]
+
+def get_song_duration(track_uri):
+    track = sp.track(track_uri)
+    ms = track['duration_ms']
+    minutes = ms // 60000
+    seconds = (ms % 60000) // 1000
+    return f"{minutes}:{seconds:02d}"
+
+def get_recommendations_from_track(track_id, limit=5):
+    recommendations = sp.recommendations(seed_tracks=[track_id], limit=limit)
+    return [
+        {'name': track['name'], 'artist': track['artists'][0]['name'], 'uri': track['uri']}
+        for track in recommendations['tracks']
+    ]
+
+def get_album_release_dates(artist_id):
+    albums = get_all_albums_by_artist(artist_id)
+    return [(album['name'], album['release_date']) for album in albums]
+
+def like_current_song():
+    current = sp.current_playback()
+    if current and current['is_playing']:
+        track_id = current['item']['id']
+        sp.current_user_saved_tracks_add([track_id])
+        return True
+    return False
+
+def get_current_playing():
+    current = sp.current_playback()
+    if current and current['is_playing']:
+        track = current['item']
+        return {
+            'name': track['name'],
+            'artist': track['artists'][0]['name']
+        }
+    return None
+
+def search_playlist_by_name(name):
+    playlists = sp.current_user_playlists()
+    for playlist in playlists['items']:
+        if name.lower() in playlist['name'].lower():
+            return playlist['uri']
+    return None
+
+def search_tracks(query, limit=5):
+    results = sp.search(q=query, type='track', limit=limit)
+    tracks = []
+    for track in results['tracks']['items']:
+        tracks.append({
+            'name': track['name'],
+            'artist': track['artists'][0]['name'],
+            'uri': track['uri']
+        })
+    return tracks
+
+def search_playlists(query, limit=5):
+    results = sp.search(q=query, type='playlist', limit=limit)
+    playlists = []
+    for playlist in results['playlists']['items']:
+        playlists.append({
+            'name': playlist['name'],
+            'uri': playlist['uri'],
+            'owner': playlist['owner']['display_name']
+        })
+    return playlists
